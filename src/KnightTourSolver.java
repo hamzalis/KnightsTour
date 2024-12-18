@@ -1,103 +1,116 @@
 import java.util.*;
-import java.util.logging.*;
 
 public class KnightTourSolver extends SearchAlgorithm {
 
+    // Enumeration to define different search strategies
     public enum Strategy {
         BFS, DFS, H1B, H2
     }
 
-    private Strategy strategy;
-    private static final int TIME_LIMIT = 900; // 15 dakika, saniye cinsinden
-    private int createdNodes = 0; // Oluşturulan düğüm sayısını takip etmek için
+    private final Strategy strategy; // The selected strategy for solving the problem
+    private static final int TIME_LIMIT = 900; // 15 minutes, in seconds
+    private int createdNodes = 0; // Tracks the number of nodes created during the process
 
+    // Constructor to initialize the KnightTourSolver
     public KnightTourSolver(int boardSize, Strategy strategy, int moveIndex) {
-        super(boardSize, moveIndex); // Hareket dizisini üst sınıfa geçir
+        super(boardSize, moveIndex); // Pass the move sequence to the superclass
         this.strategy = strategy;
     }
 
     @Override
     public void solve(int startX, int startY) {
-        Deque<Node> frontier;
+        Deque<Node> frontier; // The frontier for search
 
-        // Ortak veri yapıları ve başlangıç düğümü
+        // Initialize data structures and the root node
         if (strategy == Strategy.BFS) {
-            frontier = new LinkedList<>();
+            frontier = new LinkedList<>(); // Use a queue for BFS
         } else {
-            frontier = new ArrayDeque<>();
+            frontier = new ArrayDeque<>(); // Use a stack for DFS
         }
 
-        BitSet initialBoard = new BitSet(boardSize * boardSize);
-        Node root = new Node(startX, startY, initialBoard, boardSize, 0, new ArrayList<>(),null);
-        frontier.add(root);
-        createdNodes++; // İlk düğüm oluşturuldu
+        BitSet initialBoard = new BitSet(boardSize * boardSize); // Initialize the board
+        Node root = new Node(startX, startY, initialBoard, boardSize, 0, null); // Create the root node
+        frontier.add(root); // Add the root node to the frontier
+        createdNodes++; // Increment the count of created nodes
 
-        int expandedNodeCount = 0; // Genişletilen düğümleri takip etmek için
-        long startTime = System.currentTimeMillis();
+        int expandedNodeCount = 0; // Tracks the number of nodes expanded
+        long startTime = System.currentTimeMillis(); // Start timing
 
         try {
             while (!frontier.isEmpty()) {
 
-
-                if (System.currentTimeMillis() - startTime > TIME_LIMIT * 1000) { // Zaman sınırı saniye cinsinden alındıysa
+                // Check if the time limit is exceeded
+                if (System.currentTimeMillis() - startTime > TIME_LIMIT * 1000) {
                     String timeMsg = "Timeout!\nTotal nodes expanded: " + expandedNodeCount +
-                            "\nTotal nodes created: " + createdNodes + "\nTime spent: "+ formatTime(System.currentTimeMillis() - startTime) + "\n------------------------------------------------------------------------------------------------------------------------------\n";
+                            "\nTotal nodes created: " + createdNodes + "\nTime spent: " + formatTime(System.currentTimeMillis() - startTime) +
+                            "\n------------------------------------------------------------------------------------------------------------------------------\n";
                     System.out.println(timeMsg);
-                    Main.logger.warning(timeMsg);
+                    Main.logger.warning(timeMsg); // Log the timeout message
                     return;
                 }
 
                 Node current;
                 if (strategy == Strategy.BFS) {
-                    current = frontier.pollFirst(); // Kuyruğun başından al
+                    current = frontier.pollFirst(); // Remove the node from the front of the queue
                 } else {
-                    current = frontier.pollLast(); // Kuyruğun sonundan al
+                    current = frontier.pollLast(); // Remove the node from the back of the deque
                 }
-                expandedNodeCount++;
+                expandedNodeCount++; // Increment the expanded node count
 
+                // Check if the solution is found
+                assert current != null;
                 if (current.pathCost == boardSize * boardSize - 1) {
-                    String MSG = "Solution found!\nPath: " + current.path + "\nTotal nodes expanded: " + expandedNodeCount +
-                            "\nTotal nodes created: " + createdNodes + "\nTime spent: " + formatTime(System.currentTimeMillis() - startTime) + "\n------------------------------------------------------------------------------------------------------------------------------\n";
-                    printPath(current);
+                    String path = buildPath(current); // Construct the solution path
+                    String MSG = String.format("Solution found!\nPath: %s\nTotal nodes expanded: %d\nTotal nodes created: %d\nTime spent: %s\n",
+                            path, expandedNodeCount, createdNodes, formatTime(System.currentTimeMillis() - startTime));
+
                     System.out.println(MSG);
-                    Main.logger.info(MSG);
+                    Main.logger.info(MSG); // Log the solution message
                     return;
                 }
 
-                // Çocuk düğümleri oluştur ve frontier'a ekle
+                // Generate child nodes and add them to the frontier
                 List<Node> children = generateChildren(current, strategy);
-                createdNodes += children.size(); // Oluşturulan düğüm sayısını artır
+                createdNodes += children.size(); // Increment the count of created nodes
                 if (strategy == Strategy.BFS) {
                     frontier.addAll(children);
                 } else {
-                    Collections.reverse(children);
+                    Collections.reverse(children); // Reverse the list for DFS
                     frontier.addAll(children);
                 }
             }
+            // Log a message if no solution exists
             String noSolutionMsg = "No solution exists!\nTotal nodes expanded: " + expandedNodeCount +
-                    "\nTotal nodes created: " + createdNodes + "\nTime spent: "+ formatTime(System.currentTimeMillis() - startTime) + "\n------------------------------------------------------------------------------------------------------------------------------\n";
+                    "\nTotal nodes created: " + createdNodes + "\nTime spent: " + formatTime(System.currentTimeMillis() - startTime) +
+                    "\n------------------------------------------------------------------------------------------------------------------------------\n";
             System.out.println(noSolutionMsg);
             Main.logger.info(noSolutionMsg);
-        } catch (OutOfMemoryError e) {
+        } catch (OutOfMemoryError e) { // Handle memory overflow errors
             long millis = System.currentTimeMillis() - startTime;
             long seconds = millis / 1000;
             long minutes = seconds / 60;
             seconds %= 60;
             millis %= 1000;
             String outOfMemoryMsg = "Out of Memory!\nTotal nodes expanded: " + expandedNodeCount +
-                    "\nTotal nodes created: " + createdNodes + "\nTime spent: "+ String.format("%02d:%02d.%03d", minutes, seconds, millis) + "\n------------------------------------------------------------------------------------------------------------------------------\n";
+                    "\nTotal nodes created: " + createdNodes + "\nTime spent: " + String.format("%02d:%02d.%03d", minutes, seconds, millis) +
+                    "\n------------------------------------------------------------------------------------------------------------------------------\n";
             System.out.println(outOfMemoryMsg);
             Main.logger.severe(outOfMemoryMsg);
         }
     }
 
-    private void printPath(Node current){
-        while (current != null){
-            System.out.println(current.x + " " + current.y);
-            current = current.parent;
+    // Method to construct the path of the solution from the current node
+    private String buildPath(Node current) {
+        List<String> path = new ArrayList<>();
+        while (current != null) {
+            path.add("(" + current.x + ", " + current.y + ")");
+            current = current.parent; // Traverse to the parent node
         }
+        Collections.reverse(path); // Reverse the list to get the correct order
+        return "[" + String.join(", ", path) + "]"; // Return the formatted path
     }
 
+    // Method to format the time into minutes, seconds, and milliseconds
     private String formatTime(long millis) {
         long seconds = millis / 1000;
         long minutes = seconds / 60;

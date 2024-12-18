@@ -3,12 +3,12 @@ import java.util.BitSet;
 import java.util.List;
 
 public abstract class SearchAlgorithm {
-    protected int boardSize;
-    protected int nodeCount = 0; // Oluşturulan düğüm sayısı
-    protected int[] dx; // Dinamik hareket dizisi
-    protected int[] dy;
+    protected int boardSize; // Size of the chessboard (NxN)
+    protected int nodeCount = 0; // Number of nodes created
+    protected int[] dx; // Dynamic array for x-coordinate moves
+    protected int[] dy; // Dynamic array for y-coordinate moves
 
-    // Farklı hareket dizileri
+    // Different move sets for the knight
     public static final int[][] MOVES_DX = {
             {-2, -1, 1, 2, 2, 1, -1, -2},
             {-2, -1, 2, 1, 2, 1, -1, -2},
@@ -23,49 +23,53 @@ public abstract class SearchAlgorithm {
             {1, 2, 1, 2, -1, -2, -1, -2},
             {-1, 2, 2, 1, 1, -2, -2, -1},
             {-2, -1, 1, 2, 2, 1, -1, -2}
-
     };
 
+    // Constructor to initialize the SearchAlgorithm
     public SearchAlgorithm(int boardSize, int moveIndex) {
         this.boardSize = boardSize;
-        initializeMoves(moveIndex); // Kullanıcı tarafından seçilen hareket dizisini ayarla
+        initializeMoves(moveIndex); // Set the move sequence based on user selection
     }
 
+    // Initialize the move arrays based on the selected index
     private void initializeMoves(int index) {
         this.dx = MOVES_DX[index];
         this.dy = MOVES_DY[index];
     }
 
+    // Check if a move is valid
     protected boolean isValidMove(int x, int y, BitSet board) {
         return x >= 1 && y >= 1 && x <= boardSize && y <= boardSize && !board.get((x - 1) * boardSize + (y - 1));
     }
 
+    // Generate child nodes from the current parent node
     protected List<Node> generateChildren(Node parent, KnightTourSolver.Strategy strategy) {
         List<Node> children = new ArrayList<>();
         for (int i = 0; i < 8; i++) {
             int newX = parent.x + dx[i];
             int newY = parent.y + dy[i];
 
+            // Add valid moves as new child nodes
             if (isValidMove(newX, newY, parent.board)) {
-                children.add(new Node(newX, newY, parent.board, boardSize, parent.pathCost + 1, parent.path, parent));
-                nodeCount++; // Yeni bir düğüm oluşturulduğunda artır
+                children.add(new Node(newX, newY, parent.board, boardSize, parent.pathCost + 1, parent));
+                nodeCount++; // Increment the node count when a new node is created
             }
         }
 
-        // Stratejiye göre sıralama işlemleri
+        // Sort children based on the strategy
         switch (strategy) {
             case BFS:
             case DFS:
-                // BFS ve DFS için ek bir sıralama gerekmiyor
+                // No additional sorting required for BFS and DFS
                 break;
 
             case H1B:
-                // Geçerli hamle sayısına göre sıralama (küçükten büyüğe)
+                // Sort by the number of valid moves (ascending)
                 children.sort((a, b) -> Integer.compare(countValidMoves(a), countValidMoves(b)));
                 break;
 
             case H2:
-                // Geçerli hamle sayısına ve köşelere olan mesafeye göre sıralama
+                // Sort by valid moves and distance to corners
                 children.sort((a, b) -> {
                     int validMovesA = countValidMoves(a);
                     int validMovesB = countValidMoves(b);
@@ -85,8 +89,9 @@ public abstract class SearchAlgorithm {
         return children;
     }
 
+    // Calculate the distance of a position to the closest corner
     private int calculateDistanceToCorner(int x, int y) {
-        // Köşeler: (1,1), (1,boardSize), (boardSize,1), (boardSize,boardSize)
+        // Corners: (1,1), (1,boardSize), (boardSize,1), (boardSize,boardSize)
         int[][] corners = {{1, 1}, {1, boardSize}, {boardSize, 1}, {boardSize, boardSize}};
         int minDistance = Integer.MAX_VALUE;
 
@@ -98,6 +103,7 @@ public abstract class SearchAlgorithm {
         return minDistance;
     }
 
+    // Count the number of valid moves for a node
     private int countValidMoves(Node node) {
         int count = 0;
         for (int i = 0; i < 8; i++) {
@@ -110,5 +116,6 @@ public abstract class SearchAlgorithm {
         return count;
     }
 
+    // Abstract method to be implemented for solving the Knight's Tour problem
     public abstract void solve(int startX, int startY);
 }

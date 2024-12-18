@@ -1,29 +1,28 @@
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
 public class Node {
-    public int x, y; // Şövalyenin mevcut pozisyonu
-    public BitSet board; // Ziyaret edilen kareleri temsil eden tahta
-    public int boardSize; // Tahtanın boyutu (NxN)
-    public int pathCost; // Yapılan hamle sayısı
-    public List<String> path; // Hamle geçmişi
-    public Node parent; // Ebeveyn düğüm
+    public int x, y; // The current position of the knight
+    public BitSet board; // Represents the visited squares on the board
+    public int boardSize; // The size of the board (NxN)
+    public int pathCost; // The number of moves made
+    public List<String> path; // The move history
+    public Node parent; // The parent node
 
-    public Node(int x, int y, BitSet board, int boardSize, int pathCost, List<String> path, Node parent) {
+    // Constructor to initialize the node
+    public Node(int x, int y, BitSet board, int boardSize, int pathCost, Node parent) {
         this.x = x;
         this.y = y;
         this.boardSize = boardSize;
-        this.board = (BitSet) board.clone(); // Board'u kopyala
-        this.board.set((x - 1) * boardSize + (y - 1)); // Şu anki pozisyonu işaretle
-        this.pathCost = pathCost;
-        this.parent = parent;
-        //this.path = new ArrayList<>(path);
-        //this.path.add("(" + x + ", " + y + ")");
+        this.board = (BitSet) board.clone(); // Clone the board to preserve the original
+        this.board.set((x - 1) * boardSize + (y - 1)); // Mark the current position as visited
+        this.pathCost = pathCost; // Record the number of moves made
+        this.parent = parent; // Set the parent node
     }
 
     @Override
     public String toString() {
+        // Override to provide a string representation of the node
         return "Node at (" + x + ", " + y + ") with path: " + path;
     }
 }
